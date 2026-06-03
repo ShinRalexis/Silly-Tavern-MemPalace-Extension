@@ -15,12 +15,12 @@
 
 SillyTavern's native memory is limited to a fixed context window. MemPalace replaces that with a full cognitive architecture:
 
-- **Semantic RAG** — retrieves relevant memories based on meaning, not keywords
-- **Knowledge Graph** — tracks facts, relationships and events as structured triples (Subject → Predicate → Object)
-- **Memory Nucleus** — a permanent "core biography" always injected into the prompt
-- **Lorebook ingestion** — teach entire lorebooks to a character once; they surface naturally during chat
-- **AAAK compression** — compact memory encoding that saves up to 30x token space
-- **Timeline** — chronological view of all recorded events for a character
+- **Semantic RAG** : retrieves relevant memories based on meaning, not keywords
+- **Knowledge Graph** : tracks facts, relationships and events as structured triples (Subject → Predicate → Object)
+- **Memory Nucleus** : a permanent "core biography" always injected into the prompt
+- **Lorebook ingestion** : teach entire lorebooks to a character once; they surface naturally during chat
+- **AAAK compression** : compact memory encoding that saves up to 30x token space
+- **Timeline** : chronological view of all recorded events for a character
 
 ---
 
@@ -42,7 +42,7 @@ SillyTavern (browser)              MemPalace Server (localhost:8052)
 └─────────────────────┘            └──────────────────────────────┘
 ```
 
-Every time the AI is about to generate a response, the **generate interceptor** fires synchronously — it queries the server, retrieves relevant memories, and injects them into the prompt before the LLM sees it.
+Every time the AI is about to generate a response, the **generate interceptor** fires synchronously : it queries the server, retrieves relevant memories, and injects them into the prompt before the LLM sees it.
 
 ### Memory Layers
 
@@ -68,7 +68,7 @@ On every AI generation, up to **6 parallel queries** are fired against the serve
 | **E** — Neighbors | Character's social graph (depth 2) | Relationship context |
 | **F** — KG Bridge | Objects/predicates from Phase D facts | Associative chaining |
 
-Each phase has an independent `.catch()` — a failing phase never blocks the others. Results are merged, deduplicated, sorted by **freshness** (fragments not seen recently surface first), and compressed to fit within the configured token budget.
+Each phase has an independent `.catch()` : a failing phase never blocks the others. Results are merged, deduplicated, sorted by **freshness** (fragments not seen recently surface first), and compressed to fit within the configured token budget.
 
 ### Knowledge Graph
 
