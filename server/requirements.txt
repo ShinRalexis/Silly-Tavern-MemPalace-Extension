@@ -1,0 +1,7 @@
+mcp
+chromadb
+sentence-transformers
+pyyaml
+fastapi
+uvicorn
+pydantic

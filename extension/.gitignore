@@ -1,0 +1,18 @@
+# Claude Code (mai in repo)
+.claude/
+
+# File di debug e sviluppo
+debug_*.py
+test_*.py
+diagnose_*.py
+test_harness.js
+status_response.json
+graph_response.json
+debug_response.json
+
+# Documenti interni
+CLAUDE_HANDOFF.md
+ANTIGRAVITY_HANDOFF.md
+ST_MemPalace_Architecture.md
+backups/
+Pacchetti/
