@@ -1,6 +1,6 @@
 # ============================================================
 # MemPalace - Installer / Updater
-# https://github.com/ShinRalexis/MemPalace
+# https://github.com/ShinRalexis/Silly-Tavern-MemPalace-Extension
 # ============================================================
 # Usage:
 #   First install : .\install.ps1
@@ -27,7 +27,7 @@ function Write-Step { param($m) Write-Host "" ; Write-Host "  >>> $m" -Foregroun
 
 Write-Host ""
 Write-Host "  MemPalace - Installer v3.10.0" -ForegroundColor Cyan
-Write-Host "  https://github.com/ShinRalexis/MemPalace" -ForegroundColor DarkGray
+Write-Host "  https://github.com/ShinRalexis/Silly-Tavern-MemPalace-Extension" -ForegroundColor DarkGray
 Write-Host ""
 
 # ── Config ───────────────────────────────────────────────────

@@ -5,7 +5,7 @@
 > **Semantic long-term memory for SillyTavern characters.**
 > Beyond keywords — MemPalace gives your AI characters a real, persistent, searchable memory built on vector embeddings and a knowledge graph.
 
-[![Version](https://img.shields.io/badge/version-3.10.0-blue)](https://github.com/ShinRalexis/MemPalace/releases)
+[![Version](https://img.shields.io/badge/version-3.10.0-blue)](https://github.com/ShinRalexis/Silly-Tavern-MemPalace-Extension/releases)
 [![SillyTavern](https://img.shields.io/badge/SillyTavern-compatible-green)](https://github.com/SillyTavern/SillyTavern)
 [![License](https://img.shields.io/badge/license-MIT-orange)](LICENSE)
 
@@ -37,7 +37,7 @@ SillyTavern's native memory is limited to a fixed context window. MemPalace repl
 Clone the repo anywhere on your PC and run the installer:
 
 ```powershell
-git clone https://github.com/ShinRalexis/MemPalace
+git clone https://github.com/ShinRalexis/Silly-Tavern-MemPalace-Extension
 cd MemPalace
 .\install.ps1
 ```
