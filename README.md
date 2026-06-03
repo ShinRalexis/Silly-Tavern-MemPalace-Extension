@@ -1,76 +1,40 @@
-﻿![MemPalace](Banner.jpg)
+![MemPalace](extension/Banner.jpg)
 
-# ðŸ° MemPalace
+# MemPalace
 
-> **Semantic long-term memory for SillyTavern characters.**  
-> Beyond keywords â€” MemPalace gives your AI characters a real, persistent, searchable memory built on vector embeddings and a knowledge graph.
+> **Semantic long-term memory for SillyTavern characters.**
+> Beyond keywords — MemPalace gives your AI characters a real, persistent, searchable memory built on vector embeddings and a knowledge graph.
 
-[![Version](https://img.shields.io/badge/version-3.10.0-blue)](#)
-[![SillyTavern](https://img.shields.io/badge/SillyTavern-compatible-green)](#)
-[![License](https://img.shields.io/badge/license-MIT-orange)](#license)
+[![Version](https://img.shields.io/badge/version-3.10.0-blue)](https://github.com/ShinRalexis/MemPalace/releases)
+[![SillyTavern](https://img.shields.io/badge/SillyTavern-compatible-green)](https://github.com/SillyTavern/SillyTavern)
+[![License](https://img.shields.io/badge/license-MIT-orange)](LICENSE)
 
 ---
 
-## âœ¨ What it does
+## What it does
 
 SillyTavern's native memory is limited to a fixed context window. MemPalace replaces that with a full cognitive architecture:
 
-- **Semantic RAG** â€” retrieves relevant memories based on meaning, not keywords
-- **Knowledge Graph** â€” tracks facts, relationships and events as structured triples (Subject â†’ Predicate â†’ Object)
-- **Memory Nucleus** â€” a permanent "core biography" always injected into the prompt
-- **Lorebook ingestion** â€” teach entire lorebooks to a character once; they surface naturally during chat
-- **AAAK compression** â€” compact memory encoding that saves up to 30Ã— token space
-- **Timeline** â€” chronological view of all recorded events for a character
+- **Semantic RAG** — retrieves relevant memories based on meaning, not keywords
+- **Knowledge Graph** — tracks facts, relationships and events as structured triples (Subject → Predicate → Object)
+- **Memory Nucleus** — a permanent "core biography" always injected into the prompt
+- **Lorebook ingestion** — teach entire lorebooks to a character once; they surface naturally during chat
+- **AAAK compression** — compact memory encoding that saves up to 30x token space
+- **Timeline** — chronological view of all recorded events for a character
 
 ---
 
-## ðŸ§  How memory is organized
+## Requirements
 
-Each character has a **Wing** (isolated memory space). Inside each wing, memories are stored in **Rooms**:
-
-| Room | Content |
-|---|---|
-| `lore` | Lorebook entries, world facts, Oracle twists |
-| `char` | Character responses, Judgement outcomes |
-| `user` | User messages |
-| `secret` | Hidden facts (known to character, never injected in prompt) |
+- [SillyTavern](https://github.com/SillyTavern/SillyTavern)
+- **Docker Desktop** (recommended) or **Python 3.11+**
+- Git
 
 ---
 
-## ðŸ“‹ Requirements
+## Installation
 
-- [SillyTavern](https://github.com/SillyTavern/SillyTavern) (recent version)
-- **MemPalace Server** running on `localhost:8052`  
-  â†’ Install via **[Docker](#option-a--docker-recommended)** or **[Python direct](#option-b--python-direct)**
-
----
-
-## ðŸš€ Installation
-
-### Option A â€” Docker (recommended)
-
-```bash
-git clone https://github.com/ShinRalexis/MemPalace-Server
-cd MemPalace-Server
-docker compose up -d
-```
-
-The server starts on port `8052` and persists data in local volumes.
-
-### Option B â€” Python direct
-
-```bash
-git clone https://github.com/ShinRalexis/MemPalace-Server
-cd MemPalace-Server
-pip install -r requirements.txt
-python bridge.py
-```
-
----
-
-## ðŸ”Œ Install the SillyTavern Extension
-
-**Quick install (clone directly into ST):**
+Clone the repo anywhere on your PC and run the installer:
 
 ```powershell
 git clone https://github.com/ShinRalexis/MemPalace
@@ -78,116 +42,136 @@ cd MemPalace
 .\install.ps1
 ```
 
-**Or use the installer script** (handles path detection automatically):
+The installer will:
 
-```powershell
-cd MemPlace
-.\install.ps1
-```
+1. **Detect SillyTavern** automatically (or ask you for the path)
+2. **Install the extension** into your SillyTavern extensions folder
+3. **Set up the server** — Docker or Python direct, your choice
+4. **Create `Documents\MemPalaceMemories`** — all memories saved on your PC, never inside the container
 
-The installer detects SillyTavern automatically and asks for your MemPalace server path. Settings are saved to `paths.local.json` (not synced to git).
+At the end, both the extension and the server are fully working.
+
+> **Already have MemPalace installed?**
+> The script detects your existing container and updates the server files without touching your memories.
 
 ---
 
-## ðŸ”„ Updating
+## Updating
 
 ```powershell
-# From your MemPlace folder:
+cd MemPalace
+git pull
 .\install.ps1 -Update
 ```
 
-This pulls the latest extension files, copies them to ST, and optionally restarts the Docker container.
+This updates both the extension and the server in one step.
 
-**Reconfigure paths:**
+**Reconfigure paths (ST location, server location):**
 ```powershell
 .\install.ps1 -Configure
 ```
 
 ---
 
-## âš™ï¸ Configuration
+## Where memories are stored
 
-Once the extension is enabled in SillyTavern, configure it from the Extensions panel:
+On first install, the script creates:
+
+```
+Documents\
+└── MemPalaceMemories\
+    ├── data\      <- ChromaDB vectors (semantic memories)
+    └── config\    <- Knowledge Graph SQLite + settings
+```
+
+Your memories live on your PC. The Docker container can be deleted and recreated without losing anything.
+
+---
+
+## Configuration
+
+Once enabled in SillyTavern (Extensions panel), configure MemPalace from its settings tab:
 
 | Setting | Description |
 |---|---|
-| Memory Isolation | **Global** (shared across all chats) or **Isolated** (per chat session) |
-| RAG Relevance Threshold | 0.0 = retrieve everything Â· 1.0 = strict matches only |
+| Memory Isolation | **Global** (all chats) or **Isolated** (per chat session) |
+| RAG Relevance Threshold | 0.0 = retrieve everything / 1.0 = strict matches only |
 | RAG Budget | Max characters injected per generation (default: 2000) |
-| AAAK Compression | Compact token encoding (enable for long sessions) |
-| Auto-scan | Automatically sync new chat messages to memory |
+| AAAK Compression | Compact token encoding — recommended for long sessions |
+| Auto-scan | Automatically sync new messages to memory |
 
 ---
 
-## ðŸ“¥ Lorebook Ingestion
+## Lorebook Ingestion
 
-1. Open Extensions â†’ MemPalace â†’ **Lorebook Ingestion**
+1. Extensions → MemPalace → **Lorebook Ingestion**
 2. Select a lorebook from the dropdown
 3. Click **Ingest Lore** (confirm twice)
 
-Entries with `[NO-RAG]` in content or keys are skipped. All other entries are expanded and stored â€” `{{char}}` becomes the character's canonical name, `{{user}}` becomes `you`.
+All entries are ingested — `{{char}}` expands to the character name, `{{user}}` becomes `you`. Only entries tagged `[NO-RAG]` are skipped.
 
 ---
 
-## ðŸ”¬ Integration with Silly Quantum
+## Knowledge Browser
 
-MemPalace integrates with the [Silly Quantum](https://github.com/ShinRalexis/SillyQuantum) extension via a shared bridge (`window.__sillybridge`):
-
-- **Chaotic quantum state** (`111xxx`/`110xxx`) â†’ increases personal memory retrieval
-- **Oracle twists** â†’ saved automatically to character's `lore` room
-- **Judgement outcomes** â†’ saved automatically to character's `char` room
-
----
-
-## ðŸ—ºï¸ Knowledge Browser
-
-Access from the MemPalace panel:
-
-- **Timeline** â€” chronological events for the current character
-- **Entity Registry** â€” all known facts grouped by subject
-- **Deep Scan** â€” full historical analysis of the chat
-- **Synaptic Map** â€” interactive graph visualization (requires vis-network)
+- **Timeline** — chronological events for the current character
+- **Entity Registry** — all known facts grouped by subject
+- **Deep Scan** — full historical analysis of the chat
+- **Synaptic Map** — interactive graph visualization
 
 ---
 
-## ðŸ’¾ Backup & Restore
+## Backup & Restore
 
-**Export** all memories (drawers + KG facts + diary) to a JSON file via the **Backup** button.
+**Export** all memories (vectors + KG facts + diary) to a JSON file via the **Backup** button in the panel.
 
-**Restore** from a backup JSON with the **Restore** button. Supports both v1 and v2.0 export formats.
+**Restore** from a backup JSON with the **Restore** button. Supports export formats v1 and v2.0.
 
 ---
 
-## ðŸ“ Repository Structure
+## Integration with Silly Quantum
+
+MemPalace integrates with [Silly Quantum](https://github.com/ShinRalexis/SillyQuantum) via a shared bridge:
+
+- Chaotic quantum state (`111xxx`/`110xxx`) → increases personal memory retrieval
+- Oracle twists → saved automatically to the character's `lore` room
+- Judgement outcomes → saved automatically to the character's `char` room
+
+---
+
+## Repository Structure
 
 ```
-MemPlace/
-â”œâ”€â”€ index.js          â€” Main extension logic
-â”œâ”€â”€ manifest.json     â€” SillyTavern extension manifest
-â”œâ”€â”€ style.css         â€” UI styles
-â”œâ”€â”€ index.html        â€” Extension settings panel
-â”œâ”€â”€ vis-network.min.js â€” Graph visualization library
-â”œâ”€â”€ assets/           â€” Images and static resources
-â”œâ”€â”€ install.ps1       â€” Windows installer / updater
-â””â”€â”€ Icons/            â€” Extension icons
+MemPalace/
+├── install.ps1        <- installer and updater (run this)
+├── README.md
+├── LICENSE
+├── extension/         <- SillyTavern extension files
+│   ├── index.js
+│   ├── manifest.json
+│   ├── style.css
+│   ├── index.html
+│   └── vis-network.min.js
+└── server/            <- Python backend
+    ├── bridge.py
+    ├── mcp_server.py
+    ├── docker-compose.yml
+    ├── Dockerfile
+    └── requirements.txt
 ```
 
 ---
 
-## ðŸ”’ Privacy
+## Privacy
 
-All memory data is stored **locally** on your machine:
-- ChromaDB vectors: configurable path (default `D:/AI/MemPalace_Memories`)
-- Knowledge Graph: SQLite, same location
-- No data is sent to external services
+All data is stored **locally on your machine** in `Documents\MemPalaceMemories`. Nothing is sent to external services.
 
 ---
 
-## ðŸ“„ License
+## License
 
-MIT License â€” see [LICENSE](LICENSE)
+MIT License — see [LICENSE](LICENSE)
 
 ---
 
 *Made by [ShinRalexis](https://github.com/ShinRalexis)*
-
