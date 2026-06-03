@@ -176,11 +176,29 @@ function Start-DockerServer {
         Write-OK "Server riavviato su http://localhost:8052"
     } else {
         # Nessun container → prima installazione completa
+        # Crea cartella memorie in Documenti e configura .env
+        $memoriesRoot   = Join-Path ([Environment]::GetFolderPath("MyDocuments")) "MemPalaceMemories"
+        $memoriesData   = Join-Path $memoriesRoot "data"
+        $memoriesConfig = Join-Path $memoriesRoot "config"
+        New-Item -ItemType Directory -Path $memoriesData   -Force | Out-Null
+        New-Item -ItemType Directory -Path $memoriesConfig -Force | Out-Null
+        Write-OK "Cartella memorie creata: $memoriesRoot"
+
+        # Scrivi .env con i percorsi locali (gitignored)
+        $envFile = Join-Path $ServerPath ".env"
+        # Docker su Windows vuole slash forward nei percorsi dei volumi
+        $dataFwd   = $memoriesData.Replace('\','/')
+        $configFwd = $memoriesConfig.Replace('\','/')
+        "MEMPALACE_DATA_PATH=$dataFwd`nMEMPALACE_CONFIG_PATH=$configFwd" |
+            Set-Content $envFile -Encoding UTF8
+        Write-OK ".env configurato con percorsi locali"
+
         Write-INFO "Prima installazione — avvio container Docker..."
         Push-Location $ServerPath
         try {
             docker compose up -d --build 2>&1 | Write-Host
             Write-OK "Server avviato su http://localhost:8052"
+            Write-OK "Memorie salvate in: $memoriesRoot"
         } catch {
             Write-ERR "Errore Docker: $_"
         } finally {
