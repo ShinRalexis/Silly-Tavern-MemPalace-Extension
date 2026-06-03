@@ -1,0 +1,15 @@
+# Configurazione locale utente (percorsi, mai in repo)
+paths.local.json
+
+# Python
+server/__pycache__/
+server/*.pyc
+server/*.pyo
+server/data/
+server/config/
+server/.env
+
+# Backup e temporanei
+*.zip
+*.log
+*.tmp

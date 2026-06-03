@@ -1,0 +1,16 @@
+services:
+  mempalace:
+    build: .
+    container_name: mempalace
+    restart: unless-stopped
+    ports:
+      - "8052:8000"
+    volumes:
+      - ${MEMPALACE_DATA_PATH:-./data}:/app/data
+      - ${MEMPALACE_CONFIG_PATH:-./config}:/app/config
+      - .:/app
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+      - MEMPALACE_PALACE_PATH=/app/data
+      - MEMPALACE_CONFIG_DIR=/app/config

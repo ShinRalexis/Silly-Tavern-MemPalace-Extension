@@ -1,0 +1,11 @@
+{
+    "display_name": "MemPalace",
+    "requires": [],
+    "optional": [],
+    "js": "index.js?v=20260601g",
+    "css": "style.css",
+    "generate_interceptor": "mempalace_generate_interceptor",
+    "author": "ShinRalexis",
+    "version": "3.10.0",
+    "homePage": "https://github.com/ShinRalexis/MemPalace"
+}
