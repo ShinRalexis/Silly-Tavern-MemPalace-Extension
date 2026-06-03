@@ -71,7 +71,7 @@ function Ask-STPath {
     if ($detected) {
         Write-INFO "SillyTavern rilevato: $detected"
         $ans = Read-Host "  Usa questo percorso? [Invio=Sì / digita percorso alternativo]"
-        return ($ans -eq "") ? $detected : $ans.Trim('"')
+        if ($ans -eq "") { return $detected } else { return $ans.Trim('"') }
     }
     Write-WARN "SillyTavern non rilevato automaticamente."
     return (Read-Host "  Percorso SillyTavern (es. D:\AI\Silly Tavern)").Trim('"')
@@ -79,10 +79,23 @@ function Ask-STPath {
 
 function Ask-ServerPath {
     Write-Host ""
+
+    # Rileva se esiste già un container mempalace
+    $existing = $null
+    try { $existing = docker ps -a --filter "name=mempalace" --format "{{.Names}}" 2>$null } catch {}
+
+    if ($existing -match "mempalace") {
+        Write-OK "Container Docker 'mempalace' rilevato — MemPalace è già installato."
+        Write-INFO "Lo script aggiornerà i file del server esistente."
+        Write-INFO "Percorso dei file server (lascia vuoto se usi già questa repo):"
+        $p = (Read-Host "  Percorso server esistente").Trim('"')
+        if ($p -eq "") { return $ServerSource } else { return $p }
+    }
+
     Write-INFO "Dove installare il server MemPalace?"
-    Write-INFO "Lascia vuoto per usare la cartella 'server' di questo repo."
+    Write-INFO "Lascia vuoto per eseguirlo direttamente da questa cartella repo."
     $p = (Read-Host "  Percorso server").Trim('"')
-    return ($p -eq "") ? $ServerSource : $p
+    if ($p -eq "") { return $ServerSource } else { return $p }
 }
 
 function Ask-ServerMode {
@@ -91,7 +104,7 @@ function Ask-ServerMode {
     Write-Host "  [1] Docker (consigliato)" -ForegroundColor Gray
     Write-Host "  [2] Python diretto" -ForegroundColor Gray
     $choice = Read-Host "  Scegli [1/2]"
-    return ($choice -eq "2") ? "python" : "docker"
+    if ($choice -eq "2") { return "python" } else { return "docker" }
 }
 
 # ── Installa estensione ST ───────────────────────────────────
@@ -149,15 +162,30 @@ function Start-DockerServer {
         return
     }
 
-    Write-INFO "Avvio container Docker..."
-    Push-Location $ServerPath
-    try {
-        docker compose up -d --build 2>&1 | Write-Host
-        Write-OK "Server avviato su http://localhost:8052"
-    } catch {
-        Write-ERR "Errore Docker: $_"
-    } finally {
-        Pop-Location
+    # Rileva se esiste già un container mempalace (installazione esistente)
+    $existing = docker ps -a --filter "name=mempalace" --format "{{.Names}}" 2>$null
+    if ($existing -match "mempalace") {
+        # Container esistente → copia solo i file aggiornati e riavvia
+        Write-INFO "Container 'mempalace' già presente — aggiorno i file e riavvio."
+        if ($ServerPath -ne $ServerSource) {
+            Copy-Item "$ServerSource\*.py" $ServerPath -Force
+            Copy-Item "$ServerSource\requirements.txt" $ServerPath -Force
+            Write-OK "File server aggiornati in: $ServerPath"
+        }
+        docker restart mempalace 2>&1 | Out-Null
+        Write-OK "Server riavviato su http://localhost:8052"
+    } else {
+        # Nessun container → prima installazione completa
+        Write-INFO "Prima installazione — avvio container Docker..."
+        Push-Location $ServerPath
+        try {
+            docker compose up -d --build 2>&1 | Write-Host
+            Write-OK "Server avviato su http://localhost:8052"
+        } catch {
+            Write-ERR "Errore Docker: $_"
+        } finally {
+            Pop-Location
+        }
     }
 }
 
