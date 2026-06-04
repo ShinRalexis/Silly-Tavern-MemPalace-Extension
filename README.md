@@ -299,7 +299,7 @@ The SillyTavern extension (`extension/`), the FastAPI bridge (`server/bridge.py`
 
 ---
 
-*Made by [ShinRalexis](https://github.com/ShinRalexis)*
+Author: [MetaDarko](https://github.com/ShinRalexis) · Contact: MetaDarko@pm.me
 
 ---
 
