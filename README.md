@@ -295,3 +295,7 @@ The SillyTavern extension (`extension/`), the FastAPI bridge (`server/bridge.py`
 ---
 
 *Made by [ShinRalexis](https://github.com/ShinRalexis)*
+
+---
+
+If you find this project useful, consider supporting development on [Liberapay](https://liberapay.com/MetaDarko).
