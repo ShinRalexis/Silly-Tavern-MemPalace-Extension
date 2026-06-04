@@ -298,4 +298,6 @@ The SillyTavern extension (`extension/`), the FastAPI bridge (`server/bridge.py`
 
 ---
 
+[![Bitcoin](https://wsrv.nl/?url=files.catbox.moe/3cojtz.png&h=40)](https://mempool.space/it/address/179gN4aknE1R53w2yNJpiE4sp7nDucZ1He) [179gN4aknE1R53w2yNJpiE4sp7nDucZ1He](https://mempool.space/it/address/179gN4aknE1R53w2yNJpiE4sp7nDucZ1He)
+
 <a href="https://liberapay.com/MetaDarko/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a>
