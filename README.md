@@ -298,4 +298,4 @@ The SillyTavern extension (`extension/`), the FastAPI bridge (`server/bridge.py`
 
 ---
 
-If you find this project useful, consider supporting development on [Liberapay](https://liberapay.com/MetaDarko).
+<a href="https://liberapay.com/MetaDarko/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a>
