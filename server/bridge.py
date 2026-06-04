@@ -16,13 +16,23 @@ except ImportError as e:
 
 app = FastAPI(title="MemPalace SillyTavern Bridge")
 
-# --- CONFIGURAZIONE CORS ---
+# --- CORS: localhost only, no credentials ---
+# SillyTavern runs on localhost; wildcard origin + credentials is a CSRF risk.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Permette chiamate da qualsiasi origine (Silly Tavern compresa)
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[
+        "http://localhost",
+        "http://localhost:8000",
+        "http://localhost:8080",
+        "http://localhost:8081",
+        "http://127.0.0.1",
+        "http://127.0.0.1:8000",
+        "http://127.0.0.1:8080",
+        "http://127.0.0.1:8081",
+    ],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "X-MemPalace-Version"],
 )
 
 @app.get("/")
@@ -54,4 +64,5 @@ async def call_tool(tool_name: str, request: Request):
         return {"error": str(e)}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Bind to loopback only for direct Python mode (Docker handles its own binding)
+    uvicorn.run(app, host="127.0.0.1", port=8000)

@@ -4,7 +4,7 @@ services:
     container_name: mempalace
     restart: unless-stopped
     ports:
-      - "8052:8000"
+      - "127.0.0.1:8052:8000"
     volumes:
       - ${MEMPALACE_DATA_PATH:-./data}:/app/data
       - ${MEMPALACE_CONFIG_PATH:-./config}:/app/config
