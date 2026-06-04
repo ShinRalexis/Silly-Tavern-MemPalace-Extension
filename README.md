@@ -1,6 +1,6 @@
 ![MemPalace](extension/Banner.jpg)
 
-# MemPalace
+# Silly Tavern MemPalace Extension
 
 > **Semantic long-term memory for SillyTavern characters.**
 > Beyond keywords, MemPalace gives your AI characters a real, persistent, searchable memory built on vector embeddings and a knowledge graph.
