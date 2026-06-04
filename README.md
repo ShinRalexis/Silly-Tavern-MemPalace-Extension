@@ -299,7 +299,7 @@ The SillyTavern extension (`extension/`), the FastAPI bridge (`server/bridge.py`
 
 ---
 
-If you use MemPalace regularly, consider supporting development. It helps keep the project alive and motivates new features.
+If you use Silly-Tavern-MemPalace-Extension regularly, consider supporting development. It helps keep the project alive and motivates new features.
 
 <a href="https://mempool.space/it/address/179gN4aknE1R53w2yNJpiE4sp7nDucZ1He"><img src="https://wsrv.nl/?url=files.catbox.moe/3cojtz.png&h=30" align="absmiddle" alt="Bitcoin"> 179gN4aknE1R53w2yNJpiE4sp7nDucZ1He</a>
 
