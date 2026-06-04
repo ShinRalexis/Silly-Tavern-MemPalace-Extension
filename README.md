@@ -295,7 +295,7 @@ MIT License, see [LICENSE](LICENSE)
 
 The server backend (`server/`) is built on the [MemPalace](https://github.com/milla-jovovich/mempalace) Python library by MemPalace Contributors, released under the MIT License.
 
-The SillyTavern extension (`extension/`), the FastAPI bridge (`server/bridge.py`) and the installer (`install.ps1`) are original work by [ShinRalexis](https://github.com/ShinRalexis).
+The SillyTavern extension (`extension/`), the FastAPI bridge (`server/bridge.py`) and the installer (`install.ps1`) are original work by [MetaDarko](https://github.com/ShinRalexis).
 
 ---
 
