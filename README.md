@@ -7,6 +7,7 @@
 
 [![Version](https://img.shields.io/badge/version-3.10.0-blue)](https://github.com/ShinRalexis/Silly-Tavern-MemPalace-Extension/releases)
 [![SillyTavern](https://img.shields.io/badge/SillyTavern-compatible-green)](https://github.com/SillyTavern/SillyTavern)
+[![MemPalace](https://img.shields.io/badge/MemPalace-compatible-3296ff)](https://github.com/milla-jovovich/mempalace)
 [![License](https://img.shields.io/badge/license-MIT-orange)](LICENSE)
 
 ---
