@@ -132,6 +132,10 @@ At the end, both the extension and the server are fully working.
 > **Already have MemPalace installed?**
 > The script detects your existing container and updates the server files without touching your memories.
 
+> [!WARNING]
+> **Disable SillyTavern's built-in Vector Storage before using MemPalace!**
+> Both systems manage AI memory and running them together causes conflicts. Go to Extensions > Vector Storage and disable it. MemPalace is designed to replace it entirely.
+
 ---
 
 ## Updating
