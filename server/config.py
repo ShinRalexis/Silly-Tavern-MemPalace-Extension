@@ -102,6 +102,15 @@ class MempalaceConfig:
                 self._file_config = {}
 
     @property
+    def config_dir(self):
+        """Path to this palace's config directory, as a string.
+
+        Serve a chi deve trovare risorse per-palazzo (es. il modello di embedding
+        multilingue): config e dati sono separati fra i palazzi, il codice no.
+        """
+        return str(self._config_dir)
+
+    @property
     def palace_path(self):
         """Path to the memory palace data directory."""
         env_val = os.environ.get("MEMPALACE_PALACE_PATH") or os.environ.get("MEMPAL_PALACE_PATH")

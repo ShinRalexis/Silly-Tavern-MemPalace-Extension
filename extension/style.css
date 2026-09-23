@@ -685,3 +685,126 @@
     font-size: 0.7em;
     color: rgba(255,255,255,0.3);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONTENITORI DEL PANNELLO (riordino per logica funzionale)
+
+   Le impostazioni erano cresciute per accumulo: cursori in mezzo alle azioni,
+   spunte dopo il browser del grafo, la lingua in cima e l'azzeramento in fondo
+   accanto al backup. Ora ogni aspetto sta in un contenitore suo, e chi apre il
+   pannello vede sette titoli invece di venti controlli in fila.
+
+   Si usa <details>/<summary>: apre e chiude senza una riga di JavaScript, la
+   tastiera lo raggiunge da sola e lo screen reader lo annuncia come si deve.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.mp-gruppo {
+    border: 1px solid var(--mp-border);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    overflow: hidden;
+}
+.mp-gruppo[open] {
+    background: rgba(255, 255, 255, 0.035);
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+.mp-gruppo-testa {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 13px;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+    transition: background 0.15s ease;
+}
+.mp-gruppo-testa::-webkit-details-marker { display: none; }   /* la freccia e' la nostra */
+.mp-gruppo-testa:hover { background: rgba(255, 255, 255, 0.04); }
+.mp-gruppo-testa:focus-visible {
+    outline: 2px solid var(--mp-common);
+    outline-offset: -2px;
+}
+
+.mp-gruppo-icona {
+    color: var(--mp-common);
+    font-size: 1.05em;
+    width: 18px;
+    text-align: center;
+    flex-shrink: 0;
+}
+.mp-gruppo-titolo {
+    font-weight: 600;
+    font-size: 0.92em;
+    letter-spacing: 0.2px;
+    flex-shrink: 0;
+}
+/* Il sottotitolo dice a cosa serve il gruppo senza aprirlo. Sparisce quando il
+   pannello e' stretto: meglio niente che due righe accavallate. */
+.mp-gruppo-sotto {
+    font-size: 0.74em;
+    opacity: 0.45;
+    font-style: italic;
+    margin-left: auto;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mp-gruppo-freccia {
+    font-size: 0.75em;
+    opacity: 0.45;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+.mp-gruppo[open] .mp-gruppo-freccia { transform: rotate(180deg); }
+
+.mp-gruppo-corpo {
+    padding: 2px 11px 11px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.mp-gruppo-corpo > .mp-section:first-child { margin-top: 10px; }
+.mp-gruppo-corpo > *:last-child { margin-bottom: 0; }
+
+/* Spunte con la loro spiegazione sotto: prima erano tre righe identiche e per
+   capire cosa facesse ciascuna bisognava conoscere il codice. */
+.mp-opzione {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.mp-opzione input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+.mp-opzione > span { display: flex; flex-direction: column; gap: 2px; }
+.mp-opzione small {
+    font-size: 0.78em;
+    opacity: 0.5;
+    line-height: 1.35;
+}
+
+/* L'azzeramento e' l'unica azione senza ritorno del pannello: lo dice prima di
+   essere premuto, non dopo. */
+.mp-avviso-pericolo {
+    font-size: 0.78em;
+    line-height: 1.4;
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.07);
+    border-left: 3px solid rgba(239, 68, 68, 0.5);
+    border-radius: 0 5px 5px 0;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mp-gruppo-testa, .mp-gruppo-freccia { transition: none; }
+}
+@media (max-width: 420px) {
+    .mp-gruppo-sotto { display: none; }
+}

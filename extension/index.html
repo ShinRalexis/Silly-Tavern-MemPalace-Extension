@@ -5,7 +5,9 @@
     </div>
     <div class="inline-drawer-content">
         <div class="mempalace-settings" style="padding: 12px;">
-            
+
+            <!-- ══════════ SEMPRE VISIBILE: stato, cruscotto, ultima pesca ══════════ -->
+
             <div id="mempalace-status-container" class="mempalace-glass" style="display: flex; align-items: center; margin-bottom: 12px; padding: 12px; border-radius: 12px;">
                 <img id="mempalace-status-avatar" class="mempalace-avatar" src="" />
                 <i id="mempalace-status-icon" class="fa-solid fa-circle-nodes" style="color: gray; font-size: 1.5em; margin-right: 15px; filter: drop-shadow(0 0 5px rgba(255,255,255,0.1));"></i>
@@ -17,45 +19,10 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="mp-section">
-                <div class="mp-label-row">
-                    <span style="display: flex; align-items: center; gap: 8px;">
-                        <i class="fa-solid fa-earth-americas" style="color: var(--mp-common); font-size: 1.1em;"></i>
-                        <span data-i18n="ui_lang">Interface Language:</span>
-                    </span>
-                    <select id="mempalace-lang-select" class="mp-input-select" style="width: 130px;">
-                        <option value="en">English</option>
-                        <option value="it">Italiano</option>
-                        <option value="es">Español</option>
-                        <option value="fr">Français</option>
-                        <option value="de">Deutsch</option>
-                        <option value="ja">日本語</option>
-                        <option value="zh">中文</option>
-                    </select>
-                </div>
-            </div>
 
-            <div class="mp-section">
-                <div class="mp-label-row">
-                    <span style="display: flex; align-items: center; gap: 8px;">
-                        <i class="fa-solid fa-shield-halved" style="color: var(--mp-common); font-size: 1.1em;"></i>
-                        <span data-i18n="iso_label">Memory Isolation:</span>
-                    </span>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <i class="fa-solid fa-circle-info mp-info-icon" data-mp-info="iso"></i>
-                        <select id="mempalace-isolation-mode" class="mp-input-select" style="width: 130px;">
-                            <option value="character" data-i18n="iso_global">Global</option>
-                            <option value="chat" data-i18n="iso_local">Isolated</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- STORAGE PARAMETERS -->
             <div class="mempalace-stats-board mp-section" style="border-left: 3px solid var(--mp-common);">
                 <div style="font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 0.85em; opacity: 0.8; letter-spacing: 1px;" data-i18n="stats_title">📊 STORAGE & PARAMETERS</span>
+                    <span style="font-size: 0.85em; opacity: 0.8; letter-spacing: 1px;" data-i18n="stats_title">📊 STORAGE &amp; PARAMETERS</span>
                     <i id="mempalace-refresh-stats" class="fa-solid fa-arrows-rotate" style="cursor: pointer; color: #aaa; transition: 0.2s;" data-i18n-title="refresh_title" title="Refresh Statistics"></i>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
@@ -74,57 +41,27 @@
                     <span style="opacity: 0.7;"><i class="fa-solid fa-share-nodes" style="width: 20px; color: var(--mp-common);"></i> <span data-i18n="stat_kg_triples">KG Facts (Triples):</span></span>
                     <span id="mp-stat-kg-triples" style="font-weight: bold;">?</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                     <span style="opacity: 0.7;"><i class="fa-solid fa-pen-nib" style="width: 20px; color: var(--mp-common);"></i> <span data-i18n="stat_diary">Memory Nucleus (Bio):</span></span>
-                    <i class="fa-solid fa-pen-to-square" id="mempalace-edit-diary-btn" style="cursor:pointer; color:var(--mp-common); filter: drop-shadow(0 0 5px rgba(50, 150, 255, 0.3));" data-i18n-title="edit_mem_title"></i>
+                    <span style="display:flex; align-items:center; gap:10px;">
+                        <span id="mp-stat-diary" style="font-weight: bold;">?</span>
+                        <i class="fa-solid fa-pen-to-square" id="mempalace-edit-diary-btn" style="cursor:pointer; color:var(--mp-common); filter: drop-shadow(0 0 5px rgba(50, 150, 255, 0.3));" data-i18n-title="edit_mem_title"></i>
+                    </span>
                 </div>
-                <!-- AAAK compression stats: visibile solo se il backend restituisce dati -->
+                <!-- Quanto spesso il RAG trova qualcosa: due numeri che il codice calcolava
+                     gia' e che finora non avevano un posto dove comparire. -->
+                <div id="mp-stat-rag-hit-wrap" style="display: flex; justify-content: space-between;">
+                    <span style="opacity: 0.7;"><i class="fa-solid fa-bullseye" style="width: 20px; color: var(--mp-common);"></i> <span data-i18n="stat_rag_hit">Ricordi trovati:</span></span>
+                    <span id="mp-stat-rag-hit" style="font-weight: bold;">n/d</span>
+                </div>
                 <div id="mp-stat-aaak-wrap">
                     <div>
                         <span><i class="fa-solid fa-compress mp-aaak-icon"></i> <span data-i18n="stat_aaak">AAAK Compression:</span></span>
-                        <span id="mp-stat-aaak">—</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Nucleus Quick-Preview (collapsible, caricato on-demand) -->
-            <div id="mempalace-nucleus-preview" class="mp-nucleus-preview mp-section">
-                <div id="mempalace-nucleus-preview-toggle" class="mp-nucleus-preview-toggle">
-                    <i class="fa-solid fa-eye mp-nucleus-preview-icon"></i>
-                    <span data-i18n="nucleus_preview">Nucleus Preview</span>
-                    <i class="fa-solid fa-chevron-down mp-nucleus-chevron"></i>
-                </div>
-                <div id="mempalace-nucleus-preview-body" class="mp-nucleus-preview-body">
-                    <div id="mempalace-nucleus-preview-text" class="mp-nucleus-preview-text">—</div>
-                </div>
-            </div>
-
-            <!-- Hidden Diary Editor -->
-            <div id="mempalace-diary-editor" class="mp-section" style="display: none; border-left: 3px solid var(--mp-soul);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <div style="font-weight: bold; color: var(--mp-soul); font-size: 0.9em;"><i class="fa-solid fa-pen-nib"></i> <span data-i18n="diary_edit_title">EDIT MEMORY NUCLEUS</span></div>
-                    <div class="mp-diary-toolbar">
-                        <div id="mempalace-diary-from-kg" class="mp-diary-toolbar-btn" data-i18n-title="diary_from_kg_title">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> <span data-i18n="diary_from_kg">Genera da KG</span>
-                        </div>
-                        <div id="mempalace-diary-import-btn" class="mp-diary-toolbar-btn" data-i18n-title="diary_load_txt_title">
-                            <i class="fa-solid fa-file-import"></i> <span data-i18n="diary_load_txt">Load TXT</span>
-                        </div>
-                    </div>
-                </div>
-                <input type="file" id="mempalace-diary-file-input" style="display: none;" accept=".txt">
-                <textarea id="mempalace-diary-textarea" class="mp-input-select" style="width: 100%; height: 140px; margin-bottom: 10px; resize: vertical; font-size: 0.9em; line-height: 1.4;" data-i18n-placeholder="diary_placeholder"></textarea>
-                <div style="display: flex; gap: 8px;">
-                    <div id="mempalace-diary-save" class="mp-btn-primary" style="flex: 1; background: var(--mp-soul); border-color: var(--mp-soul); display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <span data-i18n="diary_save">Salva Memoria</span>
-                    </div>
-                    <div id="mempalace-diary-cancel" class="mp-btn-primary" style="flex: 0.8; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <span data-i18n="diary_close">Chiudi</span>
+                        <span id="mp-stat-aaak">n/d</span>
                     </div>
                 </div>
             </div>
 
-            <!-- RAG Preview: mostra l'ultimo contesto iniettato (aggiornato automaticamente dopo ogni risposta) -->
             <div id="mempalace-rag-preview" class="mp-rag-preview mp-section">
                 <div class="mp-rag-preview-header">
                     <i class="fa-solid fa-bolt mp-rag-preview-icon"></i>
@@ -135,130 +72,289 @@
                 <div id="mempalace-rag-preview-text" class="mp-rag-preview-text">In attesa della prossima generazione…</div>
             </div>
 
-            <!-- Soglia di Rilevanza RAG -->
-            <div class="mp-section mp-relevance-section">
-                <div class="mp-relevance-header">
-                    <i class="fa-solid fa-sliders mp-relevance-icon"></i>
-                    <span id="mempalace-relevance-label" data-i18n="relevance_label">Soglia Rilevanza RAG</span>
-                    <span id="mempalace-relevance-value" class="mp-relevance-value">0.0</span>
-                </div>
-                <input type="range" id="mempalace-relevance-slider" class="mp-relevance-slider"
-                    min="0" max="1" step="0.05" value="0"
-                    aria-labelledby="mempalace-relevance-label">
-                <div class="mp-relevance-hint">
-                    <span data-i18n="relevance_hint_low">Tutto</span>
-                    <span data-i18n="relevance_hint_high">Solo rilevante</span>
-                </div>
-            </div>
+            <!-- ══════════ GRUPPO: memoria del personaggio ══════════ -->
+            <details class="mp-gruppo" open>
+                <summary class="mp-gruppo-testa">
+                    <i class="fa-solid fa-user-astronaut mp-gruppo-icona"></i>
+                    <span class="mp-gruppo-titolo" data-i18n="grp_memoria">Memoria del personaggio</span>
+                    <span class="mp-gruppo-sotto" data-i18n="grp_memoria_sub">chi è, cosa ricorda, dove finisce</span>
+                    <i class="fa-solid fa-chevron-down mp-gruppo-freccia"></i>
+                </summary>
+                <div class="mp-gruppo-corpo">
 
-            <!-- Budget RAG -->
-            <div class="mp-section mp-relevance-section">
-                <div class="mp-relevance-header">
-                    <i class="fa-solid fa-compress mp-relevance-icon"></i>
-                    <span id="mempalace-ragbudget-label" data-i18n="rag_budget_label">Budget RAG (caratteri)</span>
-                    <span id="mempalace-ragbudget-value" class="mp-relevance-value">2000</span>
-                </div>
-                <input type="range" id="mempalace-ragbudget-slider" class="mp-relevance-slider"
-                    min="500" max="6000" step="100" value="2000"
-                    aria-labelledby="mempalace-ragbudget-label">
-                <div class="mp-relevance-hint">
-                    <span data-i18n="rag_budget_hint_low">Compatto</span>
-                    <span data-i18n="rag_budget_hint_high">Completo</span>
-                </div>
-            </div>
-
-            <!-- Max caratteri per frammento -->
-            <div class="mp-section mp-relevance-section">
-                <div class="mp-relevance-header">
-                    <i class="fa-solid fa-scissors mp-relevance-icon"></i>
-                    <span id="mempalace-maxfrag-label" data-i18n="max_frag_label">Max car./frammento</span>
-                    <span id="mempalace-maxfrag-value" class="mp-relevance-value">500</span>
-                </div>
-                <input type="range" id="mempalace-maxfrag-slider" class="mp-relevance-slider"
-                    min="100" max="2000" step="50" value="500"
-                    aria-labelledby="mempalace-maxfrag-label">
-                <div class="mp-relevance-hint">
-                    <span data-i18n="max_frag_hint_low">Conciso</span>
-                    <span data-i18n="max_frag_hint_high">Dettagliato</span>
-                </div>
-            </div>
-
-            <!-- KNOWLEDGE BROWSER -->
-            <div id="mempalace-kb-wrap" class="mp-section" style="background: rgba(168, 85, 247, 0.05); border-left: 3px solid var(--mp-void); position: relative; z-index: 2; pointer-events: auto;">
-                <div style="font-weight: bold; margin-bottom: 10px; color: var(--mp-void); font-size: 0.85em; letter-spacing: 1px; display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-network-wired"></i> <span data-i18n="kg_browser_title">KNOWLEDGE BROWSER</span>
-                </div>
-                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                    <div id="mempalace-kg-timeline-btn" class="mp-btn-primary" style="flex: 1; border-color: var(--mp-void); background: rgba(168, 85, 247, 0.1);">
-                        <i class="fa-solid fa-timeline"></i> <span data-i18n="kg_timeline_btn">Timeline</span>
+                    <div class="mp-section">
+                        <div class="mp-label-row">
+                            <span style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-shield-halved" style="color: var(--mp-common); font-size: 1.1em;"></i>
+                                <span data-i18n="iso_label">Memory Isolation:</span>
+                            </span>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <i class="fa-solid fa-circle-info mp-info-icon" data-mp-info="iso"></i>
+                                <select id="mempalace-isolation-mode" class="mp-input-select" style="width: 130px;">
+                                    <option value="character" data-i18n="iso_global">Global</option>
+                                    <option value="chat" data-i18n="iso_local">Isolated</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                    <div id="mempalace-kg-entities-btn" class="mp-btn-primary" style="flex: 1; border-color: var(--mp-void); background: rgba(168, 85, 247, 0.1);">
-                        <i class="fa-solid fa-users-rectangle"></i> <span data-i18n="kg_entities_btn">Entities</span>
+
+                    <div id="mempalace-nucleus-preview" class="mp-nucleus-preview mp-section">
+                        <div id="mempalace-nucleus-preview-toggle" class="mp-nucleus-preview-toggle">
+                            <i class="fa-solid fa-eye mp-nucleus-preview-icon"></i>
+                            <span data-i18n="nucleus_preview">Nucleus Preview</span>
+                            <i class="fa-solid fa-chevron-down mp-nucleus-chevron"></i>
+                        </div>
+                        <div id="mempalace-nucleus-preview-body" class="mp-nucleus-preview-body">
+                            <div id="mempalace-nucleus-preview-text" class="mp-nucleus-preview-text">n/d</div>
+                        </div>
                     </div>
-                </div>
-                <div id="mempalace-deepscan-btn" class="mp-btn-primary" style="width: 100%; text-align: center; border-color: var(--mp-void); background: rgba(168, 85, 247, 0.15); font-size: 0.82em; margin-bottom: 8px;">
-                    <i class="fa-solid fa-brain"></i> <span data-i18n="kg_deepscan_btn">Deep Knowledge Scan</span>
-                </div>
-                <div id="mempalace-graph-btn" class="mp-btn-primary" style="width: 100%; text-align: center; border-color: #f59e0b; background: rgba(245, 158, 11, 0.15); font-size: 0.82em; box-shadow: 0 0 10px rgba(245, 158, 11, 0.1);">
-                    <i class="fa-solid fa-diagram-project"></i> <span data-i18n="kg_graph_btn">Apertura Mappa Sinaptica</span>
-                </div>
-            </div>
 
-
-
-            <div class="mp-section" style="padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;">
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 0.9em; opacity: 0.8;">
-                    <input type="checkbox" id="mempalace-aaak-chk" style="width: 16px; height: 16px;">
-                    <span data-i18n="aaak_label">Enable AAAK Dialect Protocol</span>
-                    <i class="fa-solid fa-circle-info mp-info-icon" data-mp-info="aaak"></i>
-                </label>
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 0.9em; opacity: 0.8;">
-                    <input type="checkbox" id="mempalace-autoscan-chk" style="width: 16px; height: 16px;">
-                    <span data-i18n="autoscan_label">Auto-scan if misaligned</span>
-                </label>
-            </div>
-
-            <!-- LORE INGESTION -->
-            <div class="mempalace-lore-ingestion mp-section" style="background: rgba(50, 150, 255, 0.02);">
-                <div style="font-weight: bold; margin-bottom: 10px; color: var(--mp-common); font-size: 0.85em; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="display: flex; align-items: center; gap: 8px;">
-                        <i class="fa-solid fa-book"></i> <span data-i18n="lore_title">LOREBOOK INGESTION</span>
-                    </span>
-                    <i class="fa-solid fa-circle-info mp-info-icon" data-mp-info="lore"></i>
-                </div>
-                <select id="mempalace-lore-select" class="mp-input-select" style="width: 100%; margin-bottom: 10px;">
-                    <option value="" data-i18n="lore_select_default">-- Select a Lorebook --</option>
-                </select>
-                <div style="display: flex; gap: 8px;">
-                    <div id="mempalace-ingest-lore-btn" class="mp-btn-primary" style="flex: 1;">
-                        <i class="fa-solid fa-brain"></i> <span data-i18n="lore_btn">Ingest Lore</span>
+                    <div id="mempalace-diary-editor" class="mp-section" style="display: none; border-left: 3px solid var(--mp-soul);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <div style="font-weight: bold; color: var(--mp-soul); font-size: 0.9em;"><i class="fa-solid fa-pen-nib"></i> <span data-i18n="diary_edit_title">EDIT MEMORY NUCLEUS</span></div>
+                            <div class="mp-diary-toolbar">
+                                <div id="mempalace-diary-from-kg" class="mp-diary-toolbar-btn" data-i18n-title="diary_from_kg_title">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> <span data-i18n="diary_from_kg">Genera da KG</span>
+                                </div>
+                                <div id="mempalace-diary-import-btn" class="mp-diary-toolbar-btn" data-i18n-title="diary_load_txt_title">
+                                    <i class="fa-solid fa-file-import"></i> <span data-i18n="diary_load_txt">Load TXT</span>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="file" id="mempalace-diary-file-input" style="display: none;" accept=".txt">
+                        <textarea id="mempalace-diary-textarea" class="mp-input-select" style="width: 100%; height: 140px; margin-bottom: 10px; resize: vertical; font-size: 0.9em; line-height: 1.4;" data-i18n-placeholder="diary_placeholder"></textarea>
+                        <div style="display: flex; gap: 8px;">
+                            <div id="mempalace-diary-save" class="mp-btn-primary" style="flex: 1; background: var(--mp-soul); border-color: var(--mp-soul); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <span data-i18n="diary_save">Salva Memoria</span>
+                            </div>
+                            <div id="mempalace-diary-cancel" class="mp-btn-primary" style="flex: 0.8; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <span data-i18n="diary_close">Chiudi</span>
+                            </div>
+                        </div>
                     </div>
-                    <div id="mempalace-manage-lore-btn" class="mp-btn-manage" style="width: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid var(--mp-common); border-radius: 5px;">
-                        <i class="fa-solid fa-list-check"></i>
+
+                    <div class="mp-btn-primary" id="mempalace-sync-btn" style="background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1);">
+                        <i class="fa-solid fa-dna"></i> <span data-i18n="sync_btn">Sync Historical Chat</span>
                     </div>
                 </div>
-            </div>
-            
-            <div class="mp-btn-primary" id="mempalace-sync-btn" style="margin-bottom: 12px; background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1);">
-                <i class="fa-solid fa-dna"></i> <span data-i18n="sync_btn">Sync Historical Chat</span>
-            </div>
+            </details>
 
-            <div class="mp-btn-danger" id="mempalace-wipe-btn" style="margin-bottom: 15px;">
-                <i class="fa-solid fa-fire-glow"></i> <span data-i18n="wipe_btn">Delete All Memory</span>
-            </div>
-
-            <input type="file" id="mempalace-restore-file-input" style="display: none;" accept=".json">
-
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <div id="mempalace-backup-btn" class="mp-btn-primary" style="flex: 1; font-size: 0.85em; background: rgba(74, 222, 128, 0.05); border-color: #4ade80; color: #4ade80;">
-                    <i class="fa-solid fa-file-export"></i> <span data-i18n="backup_btn">Backup</span>
+            <!-- ══════════ GRUPPO: mondo e lore ══════════ -->
+            <details class="mp-gruppo">
+                <summary class="mp-gruppo-testa">
+                    <i class="fa-solid fa-book-atlas mp-gruppo-icona"></i>
+                    <span class="mp-gruppo-titolo" data-i18n="grp_mondo">Mondo e lore</span>
+                    <span class="mp-gruppo-sotto" data-i18n="grp_mondo_sub">i libri che il personaggio conosce</span>
+                    <i class="fa-solid fa-chevron-down mp-gruppo-freccia"></i>
+                </summary>
+                <div class="mp-gruppo-corpo">
+                    <div class="mempalace-lore-ingestion mp-section" style="background: rgba(50, 150, 255, 0.02);">
+                        <div style="font-weight: bold; margin-bottom: 10px; color: var(--mp-common); font-size: 0.85em; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center;">
+                            <span style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-book"></i> <span data-i18n="lore_title">LOREBOOK INGESTION</span>
+                            </span>
+                            <i class="fa-solid fa-circle-info mp-info-icon" data-mp-info="lore"></i>
+                        </div>
+                        <select id="mempalace-lore-select" class="mp-input-select" style="width: 100%; margin-bottom: 10px;">
+                            <option value="" data-i18n="lore_select_default">-- Select a Lorebook --</option>
+                        </select>
+                        <div style="display: flex; gap: 8px;">
+                            <div id="mempalace-ingest-lore-btn" class="mp-btn-primary" style="flex: 1;">
+                                <i class="fa-solid fa-brain"></i> <span data-i18n="lore_btn">Ingest Lore</span>
+                            </div>
+                            <div id="mempalace-manage-lore-btn" class="mp-btn-manage" style="width: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid var(--mp-common); border-radius: 5px;">
+                                <i class="fa-solid fa-list-check"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="mempalace-lore-link-btn" class="mp-btn-primary" style="width: 100%; text-align: center; border-color: var(--mp-void); background: rgba(168, 85, 247, 0.15); font-size: 0.82em;">
+                        <i class="fa-solid fa-link"></i> <span data-i18n="lore_manage_btn">Lore collegata</span>
+                    </div>
                 </div>
-                <div id="mempalace-restore-btn" class="mp-btn-primary" style="flex: 1; font-size: 0.85em; background: rgba(245, 158, 11, 0.05); border-color: var(--mp-soul); color: var(--mp-soul);">
-                    <i class="fa-solid fa-file-import"></i> <span data-i18n="restore_btn">Restore</span>
-                </div>
-            </div>
+            </details>
 
-            <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; text-align: center; font-size: 0.75em; opacity: 0.5;">
+            <!-- ══════════ GRUPPO: conoscenza (il grafo) ══════════ -->
+            <details class="mp-gruppo">
+                <summary class="mp-gruppo-testa">
+                    <i class="fa-solid fa-network-wired mp-gruppo-icona"></i>
+                    <span class="mp-gruppo-titolo" data-i18n="grp_conoscenza">Conoscenza</span>
+                    <span class="mp-gruppo-sotto" data-i18n="grp_conoscenza_sub">fatti, entità, eventi, mappa</span>
+                    <i class="fa-solid fa-chevron-down mp-gruppo-freccia"></i>
+                </summary>
+                <div class="mp-gruppo-corpo">
+                    <div id="mempalace-kb-wrap" class="mp-section" style="background: rgba(168, 85, 247, 0.05); border-left: 3px solid var(--mp-void); position: relative; z-index: 2; pointer-events: auto;">
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                            <div id="mempalace-kg-timeline-btn" class="mp-btn-primary" style="flex: 1; border-color: var(--mp-void); background: rgba(168, 85, 247, 0.1);">
+                                <i class="fa-solid fa-timeline"></i> <span data-i18n="kg_timeline_btn">Timeline</span>
+                            </div>
+                            <div id="mempalace-kg-entities-btn" class="mp-btn-primary" style="flex: 1; border-color: var(--mp-void); background: rgba(168, 85, 247, 0.1);">
+                                <i class="fa-solid fa-users-rectangle"></i> <span data-i18n="kg_entities_btn">Entities</span>
+                            </div>
+                        </div>
+                        <div id="mempalace-graph-btn" class="mp-btn-primary" style="width: 100%; text-align: center; border-color: #f59e0b; background: rgba(245, 158, 11, 0.15); font-size: 0.82em; box-shadow: 0 0 10px rgba(245, 158, 11, 0.1); margin-bottom: 8px;">
+                            <i class="fa-solid fa-diagram-project"></i> <span data-i18n="kg_graph_btn">Apertura Mappa Sinaptica</span>
+                        </div>
+                        <div id="mempalace-deepscan-btn" class="mp-btn-primary" style="width: 100%; text-align: center; border-color: var(--mp-void); background: rgba(168, 85, 247, 0.15); font-size: 0.82em;">
+                            <i class="fa-solid fa-brain"></i> <span data-i18n="kg_deepscan_btn">Deep Knowledge Scan</span>
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <!-- ══════════ GRUPPO: come pesca i ricordi ══════════ -->
+            <details class="mp-gruppo">
+                <summary class="mp-gruppo-testa">
+                    <i class="fa-solid fa-magnifying-glass mp-gruppo-icona"></i>
+                    <span class="mp-gruppo-titolo" data-i18n="grp_recupero">Come pesca i ricordi</span>
+                    <span class="mp-gruppo-sotto" data-i18n="grp_recupero_sub">quanto e cosa finisce nel prompt</span>
+                    <i class="fa-solid fa-chevron-down mp-gruppo-freccia"></i>
+                </summary>
+                <div class="mp-gruppo-corpo">
+                    <div class="mp-section mp-relevance-section">
+                        <div class="mp-relevance-header">
+                            <i class="fa-solid fa-sliders mp-relevance-icon"></i>
+                            <span id="mempalace-relevance-label" data-i18n="relevance_label">Soglia Rilevanza RAG</span>
+                            <span id="mempalace-relevance-value" class="mp-relevance-value">0.0</span>
+                        </div>
+                        <input type="range" id="mempalace-relevance-slider" class="mp-relevance-slider"
+                            min="0" max="1" step="0.05" value="0"
+                            aria-labelledby="mempalace-relevance-label">
+                        <div class="mp-relevance-hint">
+                            <span data-i18n="relevance_hint_low">Tutto</span>
+                            <span data-i18n="relevance_hint_high">Solo rilevante</span>
+                        </div>
+                    </div>
+
+                    <div class="mp-section mp-relevance-section">
+                        <div class="mp-relevance-header">
+                            <i class="fa-solid fa-compress mp-relevance-icon"></i>
+                            <span id="mempalace-ragbudget-label" data-i18n="rag_budget_label">Budget RAG (caratteri)</span>
+                            <span id="mempalace-ragbudget-value" class="mp-relevance-value">2000</span>
+                        </div>
+                        <input type="range" id="mempalace-ragbudget-slider" class="mp-relevance-slider"
+                            min="500" max="6000" step="100" value="2000"
+                            aria-labelledby="mempalace-ragbudget-label">
+                        <div class="mp-relevance-hint">
+                            <span data-i18n="rag_budget_hint_low">Compatto</span>
+                            <span data-i18n="rag_budget_hint_high">Completo</span>
+                        </div>
+                    </div>
+
+                    <div class="mp-section mp-relevance-section">
+                        <div class="mp-relevance-header">
+                            <i class="fa-solid fa-scissors mp-relevance-icon"></i>
+                            <span id="mempalace-maxfrag-label" data-i18n="max_frag_label">Max car./frammento</span>
+                            <span id="mempalace-maxfrag-value" class="mp-relevance-value">500</span>
+                        </div>
+                        <input type="range" id="mempalace-maxfrag-slider" class="mp-relevance-slider"
+                            min="100" max="2000" step="50" value="500"
+                            aria-labelledby="mempalace-maxfrag-label">
+                        <div class="mp-relevance-hint">
+                            <span data-i18n="max_frag_hint_low">Conciso</span>
+                            <span data-i18n="max_frag_hint_high">Dettagliato</span>
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <!-- ══════════ GRUPPO: come registra i ricordi ══════════ -->
+            <details class="mp-gruppo">
+                <summary class="mp-gruppo-testa">
+                    <i class="fa-solid fa-pen-fancy mp-gruppo-icona"></i>
+                    <span class="mp-gruppo-titolo" data-i18n="grp_scrittura">Come registra i ricordi</span>
+                    <span class="mp-gruppo-sotto" data-i18n="grp_scrittura_sub">cosa salva e come estrae i fatti</span>
+                    <i class="fa-solid fa-chevron-down mp-gruppo-freccia"></i>
+                </summary>
+                <div class="mp-gruppo-corpo">
+                    <div class="mp-section" style="padding: 10px 12px; display: flex; flex-direction: column; gap: 10px;">
+                        <label class="mp-opzione">
+                            <input type="checkbox" id="mempalace-autoscan-chk">
+                            <span>
+                                <span data-i18n="autoscan_label">Auto-scan if misaligned</span>
+                                <small data-i18n="autoscan_hint">Ri-allinea da solo i messaggi non ancora in archivio</small>
+                            </span>
+                        </label>
+                        <label class="mp-opzione">
+                            <input type="checkbox" id="mempalace-llm-extract-chk">
+                            <span>
+                                <span data-i18n="llm_extract_label">Estrai i fatti col modello (continuo + Deep Scan)</span>
+                                <small data-i18n="llm_extract_hint">Molti più fatti del regex, ma occupa il modello per qualche secondo</small>
+                            </span>
+                        </label>
+                        <label class="mp-opzione">
+                            <input type="checkbox" id="mempalace-lore-bg-chk">
+                            <span>
+                                <span data-i18n="lore_bg_label">Leggi la lore in sottofondo</span>
+                                <small data-i18n="lore_bg_hint">Solo a chat ferma da un minuto. Spegnilo se senti la scheda video lavorare</small>
+                            </span>
+                        </label>
+                        <label class="mp-opzione">
+                            <input type="checkbox" id="mempalace-aaak-chk">
+                            <span>
+                                <span data-i18n="aaak_label">Enable AAAK Dialect Protocol</span>
+                                <small data-i18n="aaak_hint">Dialetto compresso: meno token, lettura meno naturale</small>
+                            </span>
+                            <i class="fa-solid fa-circle-info mp-info-icon" data-mp-info="aaak"></i>
+                        </label>
+                    </div>
+                </div>
+            </details>
+
+            <!-- ══════════ GRUPPO: manutenzione ══════════ -->
+            <details class="mp-gruppo">
+                <summary class="mp-gruppo-testa">
+                    <i class="fa-solid fa-screwdriver-wrench mp-gruppo-icona"></i>
+                    <span class="mp-gruppo-titolo" data-i18n="grp_manutenzione">Manutenzione</span>
+                    <span class="mp-gruppo-sotto" data-i18n="grp_manutenzione_sub">copie di sicurezza e azzeramento</span>
+                    <i class="fa-solid fa-chevron-down mp-gruppo-freccia"></i>
+                </summary>
+                <div class="mp-gruppo-corpo">
+                    <input type="file" id="mempalace-restore-file-input" style="display: none;" accept=".json">
+                    <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                        <div id="mempalace-backup-btn" class="mp-btn-primary" style="flex: 1; font-size: 0.85em; background: rgba(74, 222, 128, 0.05); border-color: #4ade80; color: #4ade80;">
+                            <i class="fa-solid fa-file-export"></i> <span data-i18n="backup_btn">Backup</span>
+                        </div>
+                        <div id="mempalace-restore-btn" class="mp-btn-primary" style="flex: 1; font-size: 0.85em; background: rgba(245, 158, 11, 0.05); border-color: var(--mp-soul); color: var(--mp-soul);">
+                            <i class="fa-solid fa-file-import"></i> <span data-i18n="restore_btn">Restore</span>
+                        </div>
+                    </div>
+                    <div class="mp-avviso-pericolo" data-i18n="wipe_warning">Cancella tutti i ricordi di questo personaggio. Non si torna indietro: fai prima una copia.</div>
+                    <div class="mp-btn-danger" id="mempalace-wipe-btn">
+                        <i class="fa-solid fa-fire-glow"></i> <span data-i18n="wipe_btn">Delete All Memory</span>
+                    </div>
+                </div>
+            </details>
+
+            <!-- ══════════ GRUPPO: interfaccia ══════════ -->
+            <details class="mp-gruppo">
+                <summary class="mp-gruppo-testa">
+                    <i class="fa-solid fa-sliders mp-gruppo-icona"></i>
+                    <span class="mp-gruppo-titolo" data-i18n="grp_interfaccia">Interfaccia</span>
+                    <span class="mp-gruppo-sotto" data-i18n="grp_interfaccia_sub">lingua del pannello</span>
+                    <i class="fa-solid fa-chevron-down mp-gruppo-freccia"></i>
+                </summary>
+                <div class="mp-gruppo-corpo">
+                    <div class="mp-section">
+                        <div class="mp-label-row">
+                            <span style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-earth-americas" style="color: var(--mp-common); font-size: 1.1em;"></i>
+                                <span data-i18n="ui_lang">Interface Language:</span>
+                            </span>
+                            <select id="mempalace-lang-select" class="mp-input-select" style="width: 130px;">
+                                <option value="en">English</option>
+                                <option value="it">Italiano</option>
+                                <option value="es">Español</option>
+                                <option value="fr">Français</option>
+                                <option value="de">Deutsch</option>
+                                <option value="ja">日本語</option>
+                                <option value="zh">中文</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; margin-top: 6px; text-align: center; font-size: 0.75em; opacity: 0.5;">
                 <a href="https://liberapay.com/MetaDarko" target="_blank" style="text-decoration: none; color: inherit; display: flex; align-items: center; justify-content: center; gap: 6px;">
                     <i class="fa-solid fa-mug-hot" style="color: var(--mp-soul);"></i> <span data-i18n="support_dev">Support development on LibrePay</span>
                 </a>

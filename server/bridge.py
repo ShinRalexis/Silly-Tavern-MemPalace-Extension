@@ -2,6 +2,7 @@ import sys
 import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware # Nuova importazione
+from starlette.concurrency import run_in_threadpool
 import uvicorn
 import json
 
@@ -51,7 +52,15 @@ async def call_tool(tool_name: str, request: Request):
         if tool_name not in TOOLS:
             return {"error": f"Tool '{tool_name}' non trovato"}
         handler = TOOLS[tool_name]["handler"]
-        result = handler(**args)
+        # I tool sono funzioni SINCRONE: chiamarle direttamente qui dentro, in un
+        # endpoint `async`, blocca l'event loop per tutta la loro durata. Le
+        # richieste finiscono in fila una dietro l'altra anche quando il client le
+        # manda insieme, e il `Promise.all` delle sei fasi del RAG sembrava
+        # parallelo senza esserlo. Misurato: le fasi costano 141+140+140+60+93+48 ms
+        # una alla volta, e "in parallelo" ne costavano 580-637, cioe' esattamente
+        # la somma. run_in_threadpool le sposta su thread: sei fasi costano quanto
+        # la piu' lenta, non quanto tutte insieme.
+        result = await run_in_threadpool(handler, **args)
         
         if isinstance(result, dict):
             # Inietta "count" per compatibilità con la UI Javascript cachata
@@ -64,5 +73,7 @@ async def call_tool(tool_name: str, request: Request):
         return {"error": str(e)}
 
 if __name__ == "__main__":
-    # Bind to loopback only for direct Python mode (Docker handles its own binding)
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    # Loopback by default when run directly. Inside Docker the container must listen
+    # on 0.0.0.0 for the port mapping to reach it: docker-compose sets HOST=0.0.0.0
+    # and publishes the port on 127.0.0.1 only, so it stays local to the machine.
+    uvicorn.run(app, host=os.environ.get("HOST", "127.0.0.1"), port=int(os.environ.get("PORT", "8000")))

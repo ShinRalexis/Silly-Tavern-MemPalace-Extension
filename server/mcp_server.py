@@ -34,14 +34,41 @@ from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
 
 from knowledge_graph import KnowledgeGraph
 
-# all-MiniLM-L6-v2 via ONNX (bundled in chromadb, no extra deps)
-# To upgrade to all-mpnet-base-v2: pip install sentence-transformers, then use
-# SentenceTransformerEmbeddingFunction(model_name="all-mpnet-base-v2")
-_EMBEDDING_FN = DefaultEmbeddingFunction()
-
 _config = MempalaceConfig()
+
+# Embedding: di default all-MiniLM-L6-v2 via ONNX (incluso in chromadb, zero dipendenze).
+# E' un modello INGLESE: su un archivio italiano pesa le parole in comune invece del
+# significato, e una parafrasi corretta non trova nulla (misurato il 2026-08-08).
+#
+# Se questo palazzo ha il modello multilingue in <config>/models/multilingual-minilm/,
+# si usa quello. La scelta dipende dalla PRESENZA DELLA CARTELLA e non da un flag
+# globale perche' lo stesso codice puo' servire piu' palazzi, ognuno col suo config e i
+# suoi dati: cosi' un palazzo senza quella cartella resta sul default, coi suoi vettori
+# intatti, senza dover sapere nulla di tutto questo.
+#
+# ATTENZIONE: i vettori dei due modelli non sono confrontabili. Attivare il multilingue
+# senza ri-indicizzare l'archivio (reindex_multilingual.py) rende la ricerca inservibile.
+from embed_multilingual import embedding_for, soglia_duplicati
+
+_EMBEDDING_FN = embedding_for(_config.config_dir)
+
+# Scaldata a freddo: il modello si carica alla prima chiamata e con e5-base costa ~10
+# secondi. Farlo qui significa pagarli all'avvio del container, che succede di rado,
+# invece che sulla prima ricerca dell'utente. Dopo, ogni ricerca sta sotto i 200 ms.
+try:
+    _EMBEDDING_FN(["scaldata"])
+except Exception as _e:  # un fallimento qui non deve impedire l'avvio del server
+    logging.getLogger("mempalace_mcp").warning(f"[MemPalace] Scaldata embedding fallita: {_e}")
 _kg_path = os.path.join(_config.palace_path, "knowledge_graph.sqlite3")
 _kg = KnowledgeGraph(db_path=_kg_path)
+
+# Le parole che non possono diventare nodi del grafo. Una sola fonte, condivisa fra
+# chi scrive (l'estrattore) e chi ripulisce (wipe_noise): se le due liste divergono,
+# la pulizia toglie oggi quello che l'estrattore rimette domani.
+_RUMORE_KG = set(KnowledgeGraph.NOISE_ENTITIES) | {
+    "these", "those", "when", "in", "on", "at", "by", "as", "to", "for", "with",
+    "because", "if", "while", "of", "from", "into", "about", "over", "under",
+}
 
 logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stderr)
 logger = logging.getLogger("mempalace_mcp")
@@ -81,11 +108,11 @@ def _no_palace():
 # ==================== READ TOOLS ====================
 
 
-def tool_status(wing: str = None, room: str = None):
+def tool_status(wing: str = None, room: str = None, wings: list = None, **_ignorati):
     col = _get_collection()
     if not col:
         return _no_palace()
-    
+
     where = {}
     if wing and room:
         where = {"$and": [{"wing": wing}, {"room": room}]}
@@ -107,6 +134,7 @@ def tool_status(wing: str = None, room: str = None):
     rooms = {}
     weight_bytes = 0
     diary_count = 0
+    campione_testi = []
     try:
         kwargs = {"include": ["metadatas", "documents"], "limit": 10000}
         if where:
@@ -125,13 +153,18 @@ def tool_status(wing: str = None, room: str = None):
             # Calculate weight from the document if available
             if i < len(all_docs) and all_docs[i]:
                 weight_bytes += len(all_docs[i].encode('utf-8'))
-                
+                # Campione per la misura AAAK: bastano poche decine di ricordi
+                # veri per un rapporto attendibile, e comprimerli tutti a ogni
+                # apertura del pannello costerebbe secondi per niente.
+                if len(campione_testi) < 40 and r in ("char", "user"):
+                    campione_testi.append(all_docs[i])
+
             if r == "diary":
                 diary_count += 1
     except Exception:
         pass
 
-    # Il diary viene salvato con la convenzione "wing_<nome>" (es: "Chun Li" → "wing_chun_li").
+    # Il diary viene salvato con la convenzione "wing_<nome>" (es: "Mary Jane" → "wing_mary_jane").
     # Se abbiamo filtrato per una wing specifica e non abbiamo trovato diary nella wing diretta,
     # cerchiamo anche nella wing prefissata per mostrare il dato corretto nell'UI.
     if wing and diary_count == 0:
@@ -153,7 +186,14 @@ def tool_status(wing: str = None, room: str = None):
     sorted_rooms = sorted(rooms.items(), key=lambda x: x[1], reverse=True)[:10]
 
     try:
-        kg_stats = _kg.stats()
+        # I numeri del grafo devono parlare dello STESSO contesto dei cassetti
+        # appena contati: se si chiede lo stato di una wing, "KG Nodi" e "KG Triple"
+        # sono quelli di quella wing. Senza closet (richiesta globale) restano i
+        # totali dell'archivio, che e' il comportamento giusto per quella domanda.
+        closets = [w for w in (wings or []) if w] or ([wing] if wing else [])
+        # Le wing di lore non hanno fatti nel grafo: passarle non cambia i conti, ma
+        # nemmeno disturba, quindi si inoltrano cosi' come arrivano.
+        kg_stats = _kg.stats(wings=closets)
     except Exception as e:
         logger.error(f"[MemPalace] KG stats failed: {e}")
         kg_stats = {"entities": 0, "triples": 0, "current_facts": 0}
@@ -174,14 +214,41 @@ def tool_status(wing: str = None, room: str = None):
         "palace_path": _config.palace_path,
         "protocol": PALACE_PROTOCOL,
         "aaak_dialect": AAAK_SPEC,
+        # Il pannello aveva da sempre un indicatore "AAAK savings" che non si e' mai
+        # acceso, perche' `aaak_ratio` non lo calcolava nessuno. Ora e' una MISURA:
+        # si comprime davvero un campione dei ricordi con Dialect.compress() e si
+        # riporta il risparmio ottenuto. Non e' una stima e non e' il "30x" della
+        # documentazione — e' quanto vale su questi ricordi qui.
+        **_misura_aaak(campione_testi),
     }
+
+
+def _misura_aaak(testi):
+    """Quanto si risparmierebbe comprimendo questi ricordi in dialetto AAAK."""
+    testi = [t for t in (testi or []) if t and len(t) > 40][:40]
+    if not testi:
+        return {}
+    try:
+        from dialect import Dialect
+        d = Dialect()
+        prima = sum(len(t) for t in testi)
+        dopo = sum(len(d.compress(t) or "") for t in testi)
+        if prima <= 0 or dopo <= 0:
+            return {}
+        return {
+            "aaak_ratio": round(1 - (dopo / prima), 3),
+            "aaak_sample": len(testi),
+        }
+    except Exception as e:
+        logger.warning(f"[MemPalace] Misura AAAK non riuscita: {e}")
+        return {}
 
 
 
 
 # ── AAAK Dialect Spec ─────────────────────────────────────────────────────────
 
-PALACE_PROTOCOL = """IMPORTANT — MemPalace Memory Protocol:
+PALACE_PROTOCOL = """IMPORTANT: MemPalace Memory Protocol:
 1. ON WAKE-UP: Call mempalace_status to load palace overview + AAAK spec.
 2. BEFORE RESPONDING about any person, project, or past event: call mempalace_kg_query or mempalace_search FIRST. Never guess — verify.
 3. IF UNSURE about a fact (name, gender, age, relationship): say "let me check" and query the palace. Wrong is worse than slow.
@@ -206,7 +273,7 @@ FORMAT:
 EXAMPLE:
   FAM: ALC→♡JOR | 2D(kids): RIL(18,sports) MAX(11,chess+swimming) | BEN(contributor)
 
-Read AAAK naturally — expand codes mentally, treat *markers* as emotional context.
+Read AAAK naturally: expand codes mentally, treat *markers* as emotional context.
 When WRITING AAAK: use entity codes, mark emotions, keep structure tight."""
 
 
@@ -261,24 +328,52 @@ def tool_get_taxonomy():
     return {"taxonomy": taxonomy}
 
 
-def tool_search(query: str, limit: int = 5, wing: str = None, room: str = None):
+def tool_search(
+    query: str,
+    limit: int = 5,
+    wing: str = None,
+    room: str = None,
+    wings: list = None,
+    room_exclude=None,   # stringa o elenco di stanze
+    **_ignorati,
+):
+    """
+    Ricerca semantica.
+
+    wings permette di cercare in piu' wing insieme (la lore di un mondo e i ricordi
+    del personaggio stanno in wing separate). **_ignorati assorbe i parametri che il
+    frontend manda e qui non esistono, tipo room_hint: senza, arriverebbe un
+    TypeError e la fase morirebbe con un `null` che il chiamante scambia per
+    "nessun risultato".
+    """
     return search_memories(
         query,
         palace_path=_config.palace_path,
         wing=wing,
+        wings=wings,
         room=room,
+        room_exclude=room_exclude,
         n_results=limit,
     )
 
 
-def tool_check_duplicate(content: str, threshold: float = 0.9, wing: str = None):
+def tool_check_duplicate(content: str, threshold: float = None, wing: str = None):
     col = _get_collection()
     if not col:
         return _no_palace()
+    # La soglia dipende dal modello di embedding: vedi soglia_duplicati(), tarata sui
+    # dati. Passarla a mano resta possibile, ma il default non e' piu' un numero fisso.
+    if threshold is None:
+        threshold = soglia_duplicati(_config.config_dir)
     try:
         where = {"wing": wing} if wing else None
+        # Si confronta un DOCUMENTO con altri DOCUMENTI, quindi si embedda col ramo
+        # documenti. Usare query_texts passerebbe dal ramo ricerca, che con la famiglia
+        # E5 antepone "query: " invece di "passage: ": un confronto asimmetrico fra due
+        # cose che sono entrambe ricordi, con punteggi che non stanno sulla stessa scala
+        # di quelli su cui la soglia e' tarata.
         results = col.query(
-            query_texts=[content],
+            query_embeddings=_EMBEDDING_FN([content]),
             n_results=5,
             where=where,
             include=["metadatas", "documents", "distances"],
@@ -322,7 +417,7 @@ def tool_traverse_graph(start_room: str, max_hops: int = 2):
 
 
 def tool_find_tunnels(wing_a: str = None, wing_b: str = None):
-    """Find rooms that bridge two wings — the hallways connecting domains."""
+    """Find rooms that bridge two wings: the hallways connecting domains."""
     col = _get_collection()
     if not col:
         return _no_palace()
@@ -408,14 +503,15 @@ def tool_get_formatted_context(query: str, character: str = "Assistant", limit: 
     return {"context": narrative_text + shield}
 
 
-def tool_get_graph(character: str = None, wing: str = None):
+def tool_get_graph(character: str = None, wing: str = None, wings: list = None):
     """Return filtered nodes and edges for the specific character context or wing."""
     try:
         active_char = character.strip() if character and character.strip() else None
         active_wing = wing.strip() if wing and wing.strip() else None
-        logger.info(f"[MemPalace] Graph Request - Char: '{active_char}', Wing: '{active_wing}'")
-        
-        data = _kg.get_full_graph(character=active_char, wing=active_wing)
+        active_wings = [w.strip() for w in (wings or []) if w and w.strip()]
+        logger.info(f"[MemPalace] Graph Request - Char: '{active_char}', Wing: '{active_wing}', Wings: {active_wings}")
+
+        data = _kg.get_full_graph(character=active_char, wing=active_wing, wings=active_wings)
         node_count = len(data.get("nodes", []))
         logger.info(f"[MemPalace] Graph data fetched: {node_count} nodes, {len(data.get('edges', []))} edges")
         
@@ -434,15 +530,30 @@ def tool_get_graph(character: str = None, wing: str = None):
 
 
 def tool_add_drawer(
-    wing: str, room: str, content: str, source_file: str = None, added_by: str = "mcp", **kwargs
+    wing: str, room: str, content: str, source_file: str = None, added_by: str = "mcp",
+    dup_threshold: float = None, **kwargs
 ):
-    """File verbatim content into a wing/room. Checks for duplicates first."""
+    """File verbatim content into a wing/room. Checks for duplicates first.
+
+    `dup_threshold` alza (o abbassa) la soglia oltre la quale due testi sono
+    considerati lo stesso ricordo, SOLO per questa scrittura.
+
+    Serve allo spezzettamento: i pezzi di uno stesso ricordo si sovrappongono per
+    non tagliare una frase a meta', e due pezzi contigui arrivano a somigliarsi
+    0.96, cioe' sopra la soglia normale. Senza questa leva il secondo pezzo veniva
+    rifiutato come duplicato del primo e la coda del ricordo non entrava mai in
+    archivio: esattamente il guasto che lo spezzettamento doveva risolvere.
+    Chi scrive a pezzi controlla il duplicato UNA VOLTA sul documento intero e poi
+    passa una soglia quasi-uno qui, cosi' resta bloccato solo il testo identico.
+    Default None: chi non lo passa si comporta esattamente come prima.
+    """
     col = _get_collection(create=True)
     if not col:
         return _no_palace()
 
     # Duplicate check (filtered by wing)
-    dup = tool_check_duplicate(content, threshold=0.9, wing=wing)
+    # Nessuna soglia a mano: la decide soglia_duplicati() in base al modello attivo.
+    dup = tool_check_duplicate(content, threshold=dup_threshold, wing=wing)
     if dup.get("is_duplicate"):
         return {
             "success": False,
@@ -524,9 +635,19 @@ def tool_kg_query(entity: str = None, as_of: str = None, direction: str = "both"
         # If we have a wing, we fetch all facts from that context
         results = _kg.query_closet(wing)
         logger.info(f"[MemPalace] Closet Query for '{wing}' returned {len(results)} items")
-        # If an entity was specified, filter the wing results by that entity
+        # If an entity was specified, filter the wing results by that entity.
+        # Il confronto appiattisce trattini e spazi: chi chiama parte dal nome della
+        # wing ("Mary_Jane") mentre nel grafo l'entita' e' scritta come compare nel
+        # testo ("Mary-Jane"), e un confronto alla lettera scartava tutti e 67 i fatti
+        # del personaggio restituendo zero senza un errore.
         if ent:
-            results = [f for f in results if f["subject"].lower() == ent.lower() or f["object"].lower() == ent.lower()]
+            def _piatto(x):
+                return str(x or "").lower().replace("-", "_").replace(" ", "_")
+            bersaglio = _piatto(ent)
+            results = [
+                f for f in results
+                if _piatto(f["subject"]) == bersaglio or _piatto(f["object"]) == bersaglio
+            ]
             logger.info(f"[MemPalace] Filtered by character '{ent}': {len(results)} items remaining")
     elif ent:
         # Global search for the entity
@@ -535,29 +656,59 @@ def tool_kg_query(entity: str = None, as_of: str = None, direction: str = "both"
     return {"entity": ent or "all", "wing": wing, "as_of": as_of, "facts": results, "count": len(results)}
 
 
-def tool_kg_neighbors(entity: str, depth: int = 2):
-    """Query relationships for an entity and its social network (friends of friends)."""
-    results = _kg.query_neighbors(entity, depth=depth)
-    return {"entity": entity, "depth": depth, "facts": results, "count": len(results)}
+def tool_kg_neighbors(entity: str, depth: int = 2, wing: str = None):
+    """
+    Query relationships for an entity and its social network (friends of friends).
+
+    wing va passato SEMPRE quando la rete sociale serve a un personaggio: senza, la
+    traversata attraversa un grafo condiviso da tutti e riporta indietro i fatti di
+    altri personaggi. Resta facoltativo solo per gli usi da strumento diagnostico,
+    dove si vuole davvero guardare tutto il grafo.
+    """
+    results = _kg.query_neighbors(entity, depth=depth, source_closet=wing)
+    return {"entity": entity, "depth": depth, "wing": wing, "facts": results, "count": len(results)}
 
 
 def tool_kg_add(
-    subject: str, predicate: str, object: str, valid_from: str = None, source_closet: str = None
+    subject: str, predicate: str, object: str, valid_from: str = None,
+    source_closet: str = None, wing: str = None, supersede: bool = None,
+    source_file: str = None, **_ignorati
 ):
-    """Add a relationship to the knowledge graph."""
+    """
+    Add a relationship to the knowledge graph.
+
+    `wing` e' un sinonimo di `source_closet`: tutto il resto dell'API chiama quel
+    campo "wing" e chi scrive dal frontend si aspetta di poter usare lo stesso nome.
+    `supersede` chiude i fatti precedenti incompatibili; se non specificato lo decide
+    il predicato (vedi PREDICATI_ESCLUSIVI).
+
+    `source_file` era gia' accettato da add_triple ma qui finiva dentro `**_ignorati`
+    e veniva buttato via in silenzio. Serve: e' con quel marcatore (`lorebook:<Libro>`)
+    che tool_kg_timeline tiene la lore FUORI dalla Timeline, che deve mostrare eventi
+    e non schede di mondo. Senza, i fatti estratti da un lorebook col modello
+    finivano tutti in Timeline con la data del giorno dell'ingestione.
+    Parametro facoltativo con default None: chi non lo passa si comporta come prima.
+    """
+    closet = source_closet or wing
     triple_id = _kg.add_triple(
-        subject, predicate, object, valid_from=valid_from, source_closet=source_closet
+        subject, predicate, object, valid_from=valid_from,
+        source_closet=closet, source_file=source_file, supersede=supersede
     )
-    return {"success": True, "triple_id": triple_id, "fact": f"{subject} → {predicate} → {object}"}
+    return {"success": True, "triple_id": triple_id, "wing": closet,
+            "fact": f"{subject} → {predicate} → {object}"}
 
 
-def tool_kg_invalidate(subject: str, predicate: str, object: str, ended: str = None):
-    """Mark a fact as no longer true (set end date)."""
-    _kg.invalidate(subject, predicate, object, ended=ended)
+def tool_kg_invalidate(subject: str, predicate: str, object: str, ended: str = None,
+                       wing: str = None, source_closet: str = None, **_ignorati):
+    """Mark a fact as no longer true (set end date). `wing` lo limita a un personaggio."""
+    closet = wing or source_closet
+    chiusi = _kg.invalidate(subject, predicate, object, ended=ended, source_closet=closet)
     return {
         "success": True,
         "fact": f"{subject} → {predicate} → {object}",
         "ended": ended or "today",
+        "wing": closet,
+        "closed": chiusi,
     }
 
 
@@ -657,14 +808,31 @@ def tool_extract_facts(text: str, character: str = None, save: bool = True, vali
     """
     import re
 
-    # Strictly match 1 to 4 Capitalized words, supporting accents (e.g. 'Chun-Li', 'Papà')
-    SUBJ_REGEX = r"([A-ZÀ-ÖØ-Þ][a-zA-Z\.\'-À-ÖØ-öø-ÿ]+(?:\s+[A-ZÀ-ÖØ-Þ][a-zA-Z\.\'-À-ÖØ-öø-ÿ]+){0,3})"
+    # Strictly match 1 to 4 Capitalized words, supporting accents (e.g. 'Mary-Jane', 'Papà')
+    #
+    # Il trattino sta in FONDO alla classe di caratteri, e non e' un dettaglio di
+    # stile. Scritto come prima — [a-zA-Z\.\'-À-ÖØ-öø-ÿ] — quel trattino non era un
+    # trattino ma un INTERVALLO da ' (0x27) a À (0xC0): ci finivano dentro virgole,
+    # parentesi quadre, due punti e le cifre. Il "nome proprio" poteva quindi
+    # inghiottire mezza riga di lorebook ("Nome, Luogo]") e il grafo si riempiva
+    # di entita' che nessuno avrebbe mai potuto interrogare.
+    LETTERE = r"[a-zA-ZÀ-ÖØ-öø-ÿ.'\-]"
+    SUBJ_REGEX = rf"([A-ZÀ-ÖØ-Þ]{LETTERE}+(?:\s+[A-ZÀ-ÖØ-Þ]{LETTERE}+){{0,3}})"
 
     # Predicate pattern map: (regex pattern, canonical predicate, subj_group, obj_group)
+    #
+    # NOTA — il pattern `described_as` e' stato RIMOSSO, non commentato per pigrizia.
+    # Era `SUBJ , (a|an|the|...)? testo` e prendeva qualunque parola maiuscola seguita
+    # da una virgola: siccome ogni frase di narrativa comincia con "However,", "Well,",
+    # "Suddenly,", produceva da sola il 68% delle triple dell'archivio (973 su 1429),
+    # tutte con soggetti che non sono entita'. Peggio: nel gruppo degli articoli
+    # mancava il confine di parola, quindi su "However, their affection" l'alternativa
+    # `the` mordeva dentro "their" e l'oggetto salvato diventava "ir affection".
+    # Un estrattore che sbaglia 2 fatti su 3 e' peggio di un estrattore che tace,
+    # perche' quei fatti finiscono nel prompt come se fossero memoria del personaggio.
     PATTERNS = [
         # "X is a/an Y"
         (rf"\b{SUBJ_REGEX}\s+(?:is a|is an|is|are|were|was|è una?|è|sono)\s+([^.\n,]+?)(?=[.\n,]|$)","is_a", 1, 2),
-        (rf"\b{SUBJ_REGEX},\s+(?:a|an|the|un|una|il|lo|la)?\s*([^.\n,]+?)(?=[.\n,]|$)","described_as", 1, 2),
         # "X has Y"
         (rf"\b{SUBJ_REGEX}\s+(?:has|ha|have|hanno)\s+(?:an?\s+)?([^.\n,]+?)(?=[.\n,]|$)","has", 1, 2),
         # "X loves Y"
@@ -687,26 +855,52 @@ def tool_extract_facts(text: str, character: str = None, save: bool = True, vali
             try:
                 subj = m.group(subj_g).strip()
                 obj = m.group(obj_g).strip()
+
+                # Il soggetto va ridotto all'entita' NUDA prima di qualunque altra
+                # cosa. Senza questo passaggio il grafo si riempie di nodi-artefatto
+                # ("To Mary-Jane", "For Mary-Jane, Peter", "Key: Nome") che sono
+                # varianti dello stesso personaggio ma id diversi: il personaggio
+                # non esiste come nodo suo e la sua rete sociale e' irraggiungibile,
+                # 69 fatti in archivio e zero recuperabili. "Key:" in particolare
+                # arriva dall'ingestione lore, che antepone "[Key: parole chiave]"
+                # al testo di ogni voce del lorebook.
+                # Il punto e' ammesso dentro il nome (serve per "Dr.", "St."), ma un
+                # punto seguito da spazio e' la fine di una frase, non parte del nome:
+                # senza questo taglio "New York. Testchar loves her father" produceva
+                # il soggetto "New York. Testchar", un'entita' che non esiste e che
+                # nessuna interrogazione potra' mai incontrare. Si tiene l'ULTIMO
+                # pezzo, che e' quello che regge davvero il verbo.
+                subj = re.split(r'\.\s+', subj)[-1].strip()
+                subj = re.sub(r'^\s*\[?\s*key\s*:\s*', '', subj, flags=re.I)
+                subj = re.sub(r'^(to|for|from|with|here|there|and|but|so|of|in|on|at|by)\b\s+', '', subj, flags=re.I)
+                subj = subj.split(",")[0].strip(" .:;-")
+                if not subj:
+                    continue
                 
                 # Validation: avoid common noise and long fragments
-                blacklist = ["nothing", "something", "it", "everything", "them", "him", "her", "this", "that", "there", "she", "he", "they", "we", "i", "you", "who", "what", "where", "why", "how", "do you", "my tummy", "perfectly", "these", "those", "when", "here", "then", "in", "on", "at", "by", "as", "to", "for", "with", "and", "or", "but", "so", "because", "if", "while"]
+                # Una lista sola, condivisa con KnowledgeGraph.wipe_noise(): quello che
+                # l'estrattore rifiuta di scrivere e quello che la pulizia cancella
+                # devono essere la stessa cosa, altrimenti si ripulisce a mano un grafo
+                # che si risporca da solo al messaggio dopo.
+                blacklist = _RUMORE_KG
                 if len(subj) < 2 or len(obj) < 2 or len(obj) > 35 or len(subj) > 30:
                     continue
                 if subj.lower() in blacklist or obj.lower() in blacklist:
                     continue
-                
-                # Check for start of sentence pronouns or generic words
-                if subj.lower() in ["il", "la", "un", "una", "the", "a", "an", "is", "was", "era", "è", "in", "on", "at", "by", "as", "to", "for", "with", "these", "those", "when", "here", "there", "then"]:
-                    continue
-                
+
                 # Cleanup: remove trailing punctuation or articles
                 # Atomic Cleanup: shorten phrases and remove filler
-                obj = re.sub(r'^(a|an|the|una?|il|lo|la|some|any|this|that|your|my)\s+', '', obj, flags=re.I)
+                # \b in coda agli articoli: senza, `the` morde dentro "their" e
+                # l'oggetto viene troncato a meta' parola ("ir affection").
+                obj = re.sub(r'^(a|an|the|una?|il|lo|la|some|any|this|that|your|my)\b\s+', '', obj, flags=re.I)
                 obj = re.sub(r'\s+(is|was|were|remains|seems|feels|looks|became)\s+.*', '', obj, flags=re.I)
                 obj = obj.strip(".,!?;: ")
                 if len(obj) < 2: continue
-                obj = obj.strip(".,!?;: ")
-                
+                # Ricontrollo DOPO la pulizia: "the However" entrava con l'articolo
+                # davanti e superava il primo controllo, che vedeva una stringa diversa.
+                if obj.lower() in blacklist:
+                    continue
+
                 key = (subj.lower(), predicate, obj.lower())
                 if key in seen:
                     continue
@@ -734,13 +928,17 @@ def tool_extract_facts(text: str, character: str = None, save: bool = True, vali
                 if character and fact["subject"].lower() == character.lower(): sub_type = 'agent'
                 if character and fact["object"].lower() == character.lower(): obj_type = 'agent'
 
+                # supersede=None -> lo decide il predicato. Cosi' "Mary-Jane lives_in
+                # New York" chiude da sola "Mary-Jane lives_in Boston" quando la
+                # storia la fa trasferire, senza che nessuno debba accorgersene.
                 _kg.add_triple(
                     fact["subject"], fact["predicate"], fact["object"],
                     source_closet=character,
                     source_file=source_file,
                     valid_from=valid_from,
                     subject_type=sub_type,
-                    object_type=obj_type
+                    object_type=obj_type,
+                    supersede=None
                 )
             except Exception as e:
                 logger.error(f"KG persistence failed for {fact}: {e}")
@@ -876,7 +1074,7 @@ TOOLS = {
     },
     "mempalace_kg_normalize": {"description": "Atomic cleanup of long entities", "input_schema": {"type": "object", "properties": {}}, "handler": tool_kg_normalize},
     "mempalace_status": {
-        "description": "Palace overview — total drawers, wing and room counts",
+        "description": "Palace overview: total drawers, wing and room counts",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -945,6 +1143,7 @@ TOOLS = {
             "properties": {
                 "entity": {"type": "string", "description": "Primary entity"},
                 "depth": {"type": "integer", "description": "Graph depth (default 2)"},
+                "wing": {"type": "string", "description": "Limita la traversata ai fatti di questa wing. Ometterlo significa cercare in TUTTO il grafo, wing di altri personaggi comprese."},
             },
             "required": ["entity"],
         },
@@ -960,6 +1159,8 @@ TOOLS = {
                 "object": {"type": "string"},
                 "valid_from": {"type": "string"},
                 "source_closet": {"type": "string"},
+                "wing": {"type": "string", "description": "Sinonimo di source_closet"},
+                "source_file": {"type": "string", "description": "Provenienza, es. 'lorebook:<Libro>': tiene il fatto fuori dalla Timeline"},
             },
             "required": ["subject", "predicate", "object"],
         },
@@ -1061,7 +1262,8 @@ TOOLS = {
                 "source_file": {"type": "string"},
                 "added_by": {"type": "string"},
             },
-            "required": ["wing", "room", "content"],
+            "dup_threshold": {"type": "number", "description": "Soglia duplicati solo per questa scrittura (per i pezzi di un ricordo spezzato)"},
+                "required": ["wing", "room", "content"],
         },
         "handler": tool_add_drawer,
     },
@@ -1157,7 +1359,7 @@ TOOLS = {
             "type": "object",
             "properties": {
                 "text": {"type": "string", "description": "The message text to analyze"},
-                "character": {"type": "string", "description": "The character wing context (e.g. 'Ai Amano')"},
+                "character": {"type": "string", "description": "The character wing context (e.g. 'Mary Jane')"},
                 "save": {"type": "boolean", "description": "If true, saves discovered facts to KG automatically"},
                 "valid_from": {"type": "string", "description": "Optional ISO date (2026-03-31) representing when the fact started being true"},
                 "source_file": {"type": "string", "description": "Optional source file name"},

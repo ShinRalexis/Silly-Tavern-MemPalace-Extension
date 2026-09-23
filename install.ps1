@@ -26,7 +26,7 @@ function Write-INFO { param($m) Write-Host "  [..] $m" -ForegroundColor Gray }
 function Write-Step { param($m) Write-Host "" ; Write-Host "  >>> $m" -ForegroundColor Cyan }
 
 Write-Host ""
-Write-Host "  MemPalace - Installer v3.10.0" -ForegroundColor Cyan
+Write-Host "  MemPalace - Installer v5.9.0" -ForegroundColor Cyan
 Write-Host "  https://github.com/ShinRalexis/Silly-Tavern-MemPalace-Extension" -ForegroundColor DarkGray
 Write-Host ""
 
@@ -61,7 +61,6 @@ function Find-SillyTavern {
         "$env:USERPROFILE\Documents\SillyTavern",
         "C:\SillyTavern",
         "D:\SillyTavern",
-        "D:\AI\Silly Tavern",
         "C:\AI\SillyTavern",
         "C:\AI\Silly Tavern"
     )
@@ -83,7 +82,7 @@ function Ask-STPath {
         return $ans.Trim('"')
     }
     Write-WARN "SillyTavern not detected automatically."
-    $p = Read-Host "  SillyTavern path (e.g. D:\AI\Silly Tavern)"
+    $p = Read-Host "  SillyTavern path (e.g. C:\SillyTavern)"
     return $p.Trim('"')
 }
 
@@ -190,8 +189,18 @@ function Start-DockerServer {
             Copy-Item "$ServerSource\requirements.txt" $ServerPath -Force
             Write-OK "Server files updated at: $ServerPath"
         }
-        docker restart mempalace 2>$null | Out-Null
-        Write-OK "Server restarted on http://localhost:8052"
+        # Rebuild, not just restart: requirements.txt may have changed between
+        # versions, and a plain restart keeps the old Python packages in the image.
+        Write-INFO "Rebuilding the container with the updated dependencies..."
+        Push-Location $ServerPath
+        try {
+            docker compose up -d --build
+            Write-OK "Server running on http://localhost:8052"
+        } catch {
+            Write-ERR "Docker error: $_"
+        } finally {
+            Pop-Location
+        }
     } else {
         # First install - create memories folder and .env
         $memoriesRoot   = Join-Path ([Environment]::GetFolderPath("MyDocuments")) "MemPalaceMemories"
@@ -282,16 +291,29 @@ function Update-All {
         Write-OK "Server files updated at: $srvPath"
     }
 
-    # Restart server
+    # Restart server. Rebuild rather than restart: a new version can bring new
+    # dependencies, and a restarted container still has the old ones installed.
+    $runPath = if ($srvPath -and (Test-Path $srvPath)) { $srvPath } else { $ServerSource }
     if ($Config.server_mode -eq "docker") {
-        $dockerOut = docker ps --filter "name=mempalace" 2>$null
-        if ($dockerOut -match "mempalace") {
-            docker restart mempalace 2>$null | Out-Null
-            Write-OK "Container mempalace restarted."
-        } else {
-            Write-WARN "Container mempalace not running. Start with: docker compose up -d"
+        Push-Location $runPath
+        try {
+            docker compose up -d --build
+            Write-OK "Container mempalace rebuilt and running."
+        } catch {
+            Write-WARN "Could not rebuild automatically. Run in ${runPath}: docker compose up -d --build"
+        } finally {
+            Pop-Location
         }
     } else {
+        Push-Location $runPath
+        try {
+            python -m pip install -r requirements.txt --upgrade -q
+            Write-OK "Python dependencies updated."
+        } catch {
+            Write-ERR "pip error: $_"
+        } finally {
+            Pop-Location
+        }
         Write-WARN "Restart bridge.py manually."
     }
 
